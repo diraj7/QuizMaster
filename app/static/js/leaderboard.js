@@ -31,12 +31,41 @@ async function loadLeaderboard() {
 }
 
 async function loadQuizzes() {
-    const response = await fetch("/api/quizzes");
-    if (!response.ok) {
+    try {
+        const response = await fetch("/api/quizzes");
+
+        if (!response.ok) {
+            message.textContent = "Could not load quizzes.";
+            return;
+        }
+
+        const quizzes = await response.json();
+
+        if (quizzes.length === 0) {
+            message.textContent = "No quizzes yet.";
+            return;
+        }
+
+        quizzes.forEach(function (quiz) {
+            const option = document.createElement("option");
+            option.value = quiz.id;
+            option.textContent = quiz.title;
+            quizSelect.appendChild(option);
+        });
+
+        // The result page links here with ?quiz=<id>
+        const wantedId = new URLSearchParams(window.location.search).get("quiz");
+
+        if (wantedId) {
+            quizSelect.value = wantedId;
+        }
+
+        loadLeaderboard();
+
+    } catch (error) {
         message.textContent = "Could not load quizzes.";
-        return;
     }
-    const quizzes = await response.json();
+}
     if (quizzes.length === 0) {
         message.textContent = "No quizzes yet.";
         return;
@@ -59,3 +88,53 @@ async function loadQuizzes() {
 quizSelect.addEventListener("change", loadLeaderboard);
 
 loadQuizzes();
+
+
+
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+
+test("shows an error when quizzes cannot load due to network failure", async () => {
+    const message = { textContent: "" };
+    const quizSelect = {
+        value: "",
+        addEventListener: () => {},
+        appendChild: () => {},
+    };
+    const tableBody = { innerHTML: "" };
+
+    const elements = {
+        message,
+        "quiz-select": quizSelect,
+        "leaderboard-body": tableBody,
+    };
+
+    const document = {
+        getElementById: (id) => elements[id],
+        createElement: () => ({
+            appendChild: () => {},
+            set textContent(value) {},
+        }),
+    };
+
+    const source = fs.readFileSync(
+        path.join(process.cwd(), "app/static/js/leaderboard.js"),
+        "utf8"
+    );
+
+    vm.runInNewContext(source, {
+        document,
+        window: { location: { search: "" } },
+        URLSearchParams,
+        fetch: async () => {
+            throw new Error("Network error");
+        },
+    });
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(message.textContent, "Could not load quizzes.");
+});
