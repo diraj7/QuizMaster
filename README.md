@@ -86,6 +86,9 @@ The tests use an in-memory SQLite database, so your real data is not touched.
 
 All endpoints are under `/api` and use JSON.
 
+> **Looking for ready-to-run curl examples and error schemas?**  
+> Check out the complete [API Documentation (docs/api.md)](docs/api.md) for curl commands (macOS, Linux, and Windows), request/response payloads, and error codes for every endpoint.
+
 | Method | Endpoint                        | Description                                  |
 |--------|---------------------------------|----------------------------------------------|
 | GET    | /api/quizzes                    | List quizzes. Optional `category` and `difficulty` filters |
